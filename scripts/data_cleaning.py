@@ -24,12 +24,12 @@ def clean_nav_history():
     df = df.drop_duplicates(subset=["amfi_code", "date"])
 
     # Forward fill missing NAV for weekends/holidays
-    df = df.set_index("date")
-    df = df.groupby("amfi_code", group_keys=False).apply(
-       lambda x: x.resample("D").ffill()
-    )
+    all_dates = pd.date_range(df["date"].min(), df["date"].max(), freq="D")
+    funds = df["amfi_code"].unique()
+    idx = pd.MultiIndex.from_product([funds, all_dates], names=["amfi_code", "date"])
+    df = df.set_index(["amfi_code", "date"]).reindex(idx).groupby(level="amfi_code").ffill()
     df = df.reset_index()
-
+    
     # Validate NAV > 0
     invalid = df[df["nav"] <= 0]
     print(f"Invalid NAV rows (<=0): {len(invalid)}")
